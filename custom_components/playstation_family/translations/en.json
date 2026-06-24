@@ -1,0 +1,61 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to PlayStation Family",
+        "description": "Sign in at playstation.com as the Family Manager, then open https://ca.account.sony.com/api/v1/ssocookie and copy the 64-character `npsso` value below.",
+        "data": {
+          "npsso": "NPSSO token"
+        },
+        "data_description": {
+          "npsso": "The npsso cookie value from https://ca.account.sony.com/api/v1/ssocookie"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate PlayStation Family",
+        "description": "Your PlayStation session has expired. Sign in again at playstation.com, open https://ca.account.sony.com/api/v1/ssocookie and paste the new `npsso` value.",
+        "data": {
+          "npsso": "NPSSO token"
+        },
+        "data_description": {
+          "npsso": "The npsso cookie value from https://ca.account.sony.com/api/v1/ssocookie"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
+      "scope_unavailable": "Authenticated, but this account cannot access the Family API. Make sure you used the Family Manager account.",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]",
+      "reauth_successful": "[%key:common::config_flow::abort::reauth_successful%]",
+      "wrong_account": "The npsso belongs to a different PlayStation account than the one originally configured."
+    }
+  },
+  "entity": {
+    "number": {
+      "daily_playtime_limit": {
+        "name": "Daily playtime limit"
+      }
+    },
+    "sensor": {
+      "playtime_used_today": {
+        "name": "Playtime used today"
+      },
+      "playtime_remaining": {
+        "name": "Playtime remaining"
+      },
+      "online_status": {
+        "name": "Online status"
+      },
+      "now_playing": {
+        "name": "Now playing"
+      },
+      "last_online": {
+        "name": "Last online"
+      }
+    }
+  }
+}

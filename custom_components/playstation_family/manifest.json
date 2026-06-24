@@ -12,7 +12,7 @@
   "issue_tracker": "https://github.com/parkee/playstation_family-ha/issues",
   "loggers": ["psnfamily"],
   "requirements": [
-    "psnfamily==0.1.0"
+    "psnfamily==0.2.0"
   ],
   "version": "0.1.0"
 }

@@ -1,0 +1,113 @@
+set_weekly_schedule:
+  fields:
+    device_id:
+      required: false
+      example: "a1b2c3d4e5f6"
+      selector:
+        device:
+          integration: playstation_family
+    entity_id:
+      required: false
+      example: "number.kid_daily_playtime_limit"
+      selector:
+        entity:
+          integration: playstation_family
+    monday:
+      required: false
+      default: 0
+      example: 120
+      selector:
+        number:
+          min: 0
+          max: 1440
+          step: 15
+          unit_of_measurement: min
+          mode: box
+    tuesday:
+      required: false
+      default: 0
+      example: 120
+      selector:
+        number:
+          min: 0
+          max: 1440
+          step: 15
+          unit_of_measurement: min
+          mode: box
+    wednesday:
+      required: false
+      default: 0
+      example: 120
+      selector:
+        number:
+          min: 0
+          max: 1440
+          step: 15
+          unit_of_measurement: min
+          mode: box
+    thursday:
+      required: false
+      default: 0
+      example: 120
+      selector:
+        number:
+          min: 0
+          max: 1440
+          step: 15
+          unit_of_measurement: min
+          mode: box
+    friday:
+      required: false
+      default: 0
+      example: 180
+      selector:
+        number:
+          min: 0
+          max: 1440
+          step: 15
+          unit_of_measurement: min
+          mode: box
+    saturday:
+      required: false
+      default: 0
+      example: 240
+      selector:
+        number:
+          min: 0
+          max: 1440
+          step: 15
+          unit_of_measurement: min
+          mode: box
+    sunday:
+      required: false
+      default: 0
+      example: 240
+      selector:
+        number:
+          min: 0
+          max: 1440
+          step: 15
+          unit_of_measurement: min
+          mode: box
+    window_start:
+      required: false
+      default: 0
+      example: 480
+      selector:
+        number:
+          min: 0
+          max: 1440
+          step: 15
+          unit_of_measurement: min
+          mode: box
+    window_end:
+      required: false
+      default: 1440
+      example: 1320
+      selector:
+        number:
+          min: 0
+          max: 1440
+          step: 15
+          unit_of_measurement: min
+          mode: box

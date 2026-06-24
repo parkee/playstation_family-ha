@@ -40,6 +40,11 @@
         "name": "Daily playtime limit"
       }
     },
+    "select": {
+      "on_limit_action": {
+        "name": "When limit reached"
+      }
+    },
     "sensor": {
       "playtime_used_today": {
         "name": "Playtime used today"
@@ -55,6 +60,58 @@
       },
       "last_online": {
         "name": "Last online"
+      }
+    }
+  },
+  "services": {
+    "set_weekly_schedule": {
+      "name": "Set weekly schedule",
+      "description": "Sets a child's recurring play-time limit for each weekday (Monday-Sunday). 0 minutes (or omitted) means no limit for that day.",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The PlayStation Family child device to update. Use this or an entity ID."
+        },
+        "entity_id": {
+          "name": "Entity",
+          "description": "An entity belonging to the child to update. Use this or a device."
+        },
+        "monday": {
+          "name": "Monday",
+          "description": "Play-time limit for Monday, in minutes (0 = no limit)."
+        },
+        "tuesday": {
+          "name": "Tuesday",
+          "description": "Play-time limit for Tuesday, in minutes (0 = no limit)."
+        },
+        "wednesday": {
+          "name": "Wednesday",
+          "description": "Play-time limit for Wednesday, in minutes (0 = no limit)."
+        },
+        "thursday": {
+          "name": "Thursday",
+          "description": "Play-time limit for Thursday, in minutes (0 = no limit)."
+        },
+        "friday": {
+          "name": "Friday",
+          "description": "Play-time limit for Friday, in minutes (0 = no limit)."
+        },
+        "saturday": {
+          "name": "Saturday",
+          "description": "Play-time limit for Saturday, in minutes (0 = no limit)."
+        },
+        "sunday": {
+          "name": "Sunday",
+          "description": "Play-time limit for Sunday, in minutes (0 = no limit)."
+        },
+        "window_start": {
+          "name": "Playable window start",
+          "description": "Start of the playable-hours window, in minutes from midnight (default 0)."
+        },
+        "window_end": {
+          "name": "Playable window end",
+          "description": "End of the playable-hours window, in minutes from midnight (default 1440)."
+        }
       }
     }
   }

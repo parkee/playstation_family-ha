@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from homeassistant.core import HomeAssistant
 
-from .const import PLATFORMS
+from .const import DOMAIN, PLATFORMS, SERVICE_SET_WEEKLY_SCHEDULE
 from .coordinator import (
     PlaystationFamilyConfigEntry,
     PlaystationFamilyCoordinator,
 )
+from .services import async_setup_services
 
 
 async def async_setup_entry(
@@ -20,6 +21,10 @@ async def async_setup_entry(
     await coordinator.async_config_entry_first_refresh()
 
     entry.runtime_data = coordinator
+
+    # Register integration-wide services once.
+    if not hass.services.has_service(DOMAIN, SERVICE_SET_WEEKLY_SCHEDULE):
+        async_setup_services(hass)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True

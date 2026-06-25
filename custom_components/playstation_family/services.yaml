@@ -111,3 +111,61 @@ set_weekly_schedule:
           step: 15
           unit_of_measurement: min
           mode: box
+
+adjust_today_playtime:
+  fields:
+    device_id:
+      required: false
+      example: "a1b2c3d4e5f6"
+      selector:
+        device:
+          integration: playstation_family
+    entity_id:
+      required: false
+      example: "sensor.kid_playtime_remaining"
+      selector:
+        entity:
+          integration: playstation_family
+    minutes:
+      required: true
+      example: 15
+      selector:
+        number:
+          min: -480
+          max: 480
+          step: 15
+          unit_of_measurement: min
+          mode: box
+
+set_parental_control:
+  fields:
+    device_id:
+      required: false
+      example: "a1b2c3d4e5f6"
+      selector:
+        device:
+          integration: playstation_family
+    entity_id:
+      required: false
+      example: "sensor.kid_online_status"
+      selector:
+        entity:
+          integration: playstation_family
+    field:
+      required: true
+      example: "internetBrowser"
+      selector:
+        select:
+          options:
+            - "internetBrowser"
+            - "vrApp"
+            - "freeCommunication"
+            - "contentControl"
+            - "ageLevel"
+            - "gameContent"
+            - "spendingLimit"
+    value:
+      required: true
+      example: "1"
+      selector:
+        text:

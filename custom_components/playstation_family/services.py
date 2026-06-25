@@ -14,23 +14,55 @@ from homeassistant.helpers import (
 from homeassistant.helpers import (
     entity_registry as er,
 )
-from psnfamily import FamilyMember, PsnFamilyError, format_pt
+from psnfamily import FamilyMember, PsnFamilyError, format_pt, quantize_seconds
 
 from .const import (
     ATTR_DEVICE_ID,
     ATTR_ENTITY_ID,
+    ATTR_FIELD,
+    ATTR_MINUTES,
+    ATTR_VALUE,
     ATTR_WINDOW_END,
     ATTR_WINDOW_START,
     DEFAULT_WINDOW_END,
     DEFAULT_WINDOW_START,
     DOMAIN,
     LOGGER,
+    PARENTAL_CONTROL_FIELDS,
+    SERVICE_ADJUST_TODAY_PLAYTIME,
+    SERVICE_SET_PARENTAL_CONTROL,
     SERVICE_SET_WEEKLY_SCHEDULE,
     WEEKDAYS,
 )
 from .coordinator import PlaystationFamilyCoordinator
 
 _MINUTES = vol.All(vol.Coerce(int), vol.Range(min=0, max=1440))
+
+# Signed minutes for the today-only adjustment: positive adds, negative removes;
+# 0 is rejected. Bounded to +/-8h; the API quantizes to 15 min regardless.
+_SIGNED_MINUTES = vol.All(
+    vol.Coerce(int), vol.Range(min=-480, max=480), vol.NotIn([0])
+)
+
+_TARGET_SCHEMA = {
+    vol.Exclusive(ATTR_DEVICE_ID, "target"): cv.string,
+    vol.Exclusive(ATTR_ENTITY_ID, "target"): cv.entity_id,
+}
+
+ADJUST_TODAY_PLAYTIME_SCHEMA = vol.Schema(
+    {
+        **_TARGET_SCHEMA,
+        vol.Required(ATTR_MINUTES): _SIGNED_MINUTES,
+    }
+)
+
+SET_PARENTAL_CONTROL_SCHEMA = vol.Schema(
+    {
+        **_TARGET_SCHEMA,
+        vol.Required(ATTR_FIELD): vol.In(PARENTAL_CONTROL_FIELDS),
+        vol.Required(ATTR_VALUE): cv.string,
+    }
+)
 
 # Each weekday field is optional; omitted or 0 == no limit for that day.
 SET_WEEKLY_SCHEDULE_SCHEMA = vol.Schema(
@@ -88,11 +120,74 @@ def async_setup_services(hass: HomeAssistant) -> None:
             ) from err
         await coordinator.async_request_refresh()
 
+    async def _handle_adjust_today_playtime(call: ServiceCall) -> None:
+        """Apply a today-only signed play-time delta to the target child.
+
+        PSN's updateTodaysPlaytimeLimit is a delta (one-day override), so this
+        adds (positive) or removes (negative) minutes from today's effective
+        limit -- it does not change the recurring "Daily playtime limit".
+        """
+        coordinator, member = _resolve_target(hass, call)
+        minutes = call.data[ATTR_MINUTES]
+        seconds = quantize_seconds(abs(minutes) * 60)
+        if seconds == 0:
+            raise ServiceValidationError(
+                "minutes rounds to 0; use a multiple of 15 minutes"
+            )
+        change = format_pt(seconds if minutes > 0 else -seconds)
+        try:
+            await coordinator.client.update_todays_playtime(
+                member.member_id, change
+            )
+        except PsnFamilyError as err:
+            LOGGER.error(
+                "Failed today's play-time adjustment for %s: %s",
+                member.identity.display_name,
+                err,
+            )
+            raise HomeAssistantError(
+                f"Failed to adjust today's play-time: {err}"
+            ) from err
+        await coordinator.async_request_refresh()
+
+    async def _handle_set_parental_control(call: ServiceCall) -> None:
+        """Write a single parental-control field for the target child."""
+        coordinator, member = _resolve_target(hass, call)
+        field = call.data[ATTR_FIELD]
+        value = call.data[ATTR_VALUE]
+        try:
+            await coordinator.client.set_parental_control(
+                member.identity.account_id, field, value
+            )
+        except PsnFamilyError as err:
+            LOGGER.error(
+                "Failed to set parental control %s for %s: %s",
+                field,
+                member.identity.display_name,
+                err,
+            )
+            raise HomeAssistantError(
+                f"Failed to set parental control {field}: {err}"
+            ) from err
+        await coordinator.async_request_refresh()
+
     hass.services.async_register(
         DOMAIN,
         SERVICE_SET_WEEKLY_SCHEDULE,
         _handle_set_weekly_schedule,
         schema=SET_WEEKLY_SCHEDULE_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_ADJUST_TODAY_PLAYTIME,
+        _handle_adjust_today_playtime,
+        schema=ADJUST_TODAY_PLAYTIME_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_PARENTAL_CONTROL,
+        _handle_set_parental_control,
+        schema=SET_PARENTAL_CONTROL_SCHEMA,
     )
 
 

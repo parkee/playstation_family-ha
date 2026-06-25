@@ -35,6 +35,14 @@
     }
   },
   "entity": {
+    "button": {
+      "add_today_playtime": {
+        "name": "Add 15 min today"
+      },
+      "remove_today_playtime": {
+        "name": "Remove 15 min today"
+      }
+    },
     "number": {
       "daily_playtime_limit": {
         "name": "Daily playtime limit"
@@ -111,6 +119,46 @@
         "window_end": {
           "name": "Playable window end",
           "description": "End of the playable-hours window, in minutes from midnight (default 1440)."
+        }
+      }
+    },
+    "adjust_today_playtime": {
+      "name": "Adjust today's playtime",
+      "description": "Adds or removes play-time for today only (a one-day override), like the app's +15 / -15 buttons. This does not change the recurring daily limit.",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The PlayStation Family child device to adjust. Use this or an entity ID."
+        },
+        "entity_id": {
+          "name": "Entity",
+          "description": "An entity belonging to the child to adjust. Use this or a device."
+        },
+        "minutes": {
+          "name": "Minutes",
+          "description": "Minutes to add (positive) or remove (negative) from today's limit. Rounded to 15-minute steps."
+        }
+      }
+    },
+    "set_parental_control": {
+      "name": "Set parental control",
+      "description": "Writes a single parental-control setting for a child (web browsing, communication, VR, age/content level, or spending limit). Values are PSN field codes (e.g. \"1\" to restrict / \"0\" to allow).",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The PlayStation Family child device to update. Use this or an entity ID."
+        },
+        "entity_id": {
+          "name": "Entity",
+          "description": "An entity belonging to the child to update. Use this or a device."
+        },
+        "field": {
+          "name": "Control",
+          "description": "Which parental-control field to set."
+        },
+        "value": {
+          "name": "Value",
+          "description": "The PSN value code for the field (e.g. \"1\"=restrict / \"0\"=allow for toggles; a level number for ageLevel/gameContent; an amount for spendingLimit)."
         }
       }
     }

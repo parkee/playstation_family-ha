@@ -109,7 +109,7 @@ Writes a single parental-control setting for a child. Values are PSN field codes
 | Field | Required | Description |
 |-------|----------|-------------|
 | `device_id` / `entity_id` | one of | The child to update |
-| `field` | yes | One of `internetBrowser`, `vrApp`, `freeCommunication`, `contentControl`, `ageLevel`, `gameContent`, `spendingLimit` |
+| `field` | yes | One of `internetBrowser`, `vrApp`, `freeCommunication`, `contentControl`, `ageLevel`, `gameContent`, `spendingLimit`, `bluerayAgeContent`, `discContentCountry`, `dvdContent` |
 | `value` | yes | The PSN code (e.g. `"1"` restrict / `"0"` allow for toggles; a level for `ageLevel`/`gameContent`; an amount for `spendingLimit`) |
 
 ```yaml

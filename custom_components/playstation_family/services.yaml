@@ -164,6 +164,9 @@ set_parental_control:
             - "ageLevel"
             - "gameContent"
             - "spendingLimit"
+            - "bluerayAgeContent"
+            - "discContentCountry"
+            - "dvdContent"
     value:
       required: true
       example: "1"

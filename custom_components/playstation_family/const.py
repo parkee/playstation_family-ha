@@ -36,8 +36,8 @@ ATTR_MINUTES: Final = "minutes"
 ATTR_FIELD: Final = "field"
 ATTR_VALUE: Final = "value"
 
-# Parental-control fields writable via psnfamily.OhanaClient.set_parental_control,
-# with value encodings recovered from live capture (see research/).
+# Parental-control fields writable via psnfamily.OhanaClient.set_parental_control.
+# The full updateParentalControls content family (all individually allow-listed).
 PARENTAL_CONTROL_FIELDS: Final[tuple[str, ...]] = (
     "internetBrowser",
     "vrApp",
@@ -46,6 +46,9 @@ PARENTAL_CONTROL_FIELDS: Final[tuple[str, ...]] = (
     "ageLevel",
     "gameContent",
     "spendingLimit",
+    "bluerayAgeContent",
+    "discContentCountry",
+    "dvdContent",
 )
 
 # Mon..Sun keys for the weekly-schedule service. Index 0 == Monday matches the

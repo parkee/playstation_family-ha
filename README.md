@@ -3,8 +3,9 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 
 Home Assistant integration for the **PlayStation Family** parental-controls API.
-Monitor your children's PlayStation play-time and set their daily play-time
-limits directly from Home Assistant.
+Monitor your children's PlayStation play-time and presence, set recurring and
+today-only play-time limits, and adjust parental controls — directly from Home
+Assistant.
 
 > Unofficial and not affiliated with Sony. Built on the
 > [`psnfamily`](https://pypi.org/project/psnfamily/) library, which is
@@ -16,7 +17,9 @@ One Home Assistant device is created per child, with:
 
 | Entity | Platform | Description |
 |--------|----------|-------------|
-| Daily playtime limit | Number | Set/clear the daily play-time limit (0 = unlimited, 15-minute steps) |
+| Daily playtime limit | Number | Set/clear the **recurring** daily play-time limit (0 = unlimited, 15-minute steps) |
+| Add 15 min today | Button | Grant 15 more minutes **for today only** (one-day override) |
+| Remove 15 min today | Button | Take back 15 minutes **for today only** |
 | When limit reached | Select | Action when the limit is hit: **Notify only** or **Log out** |
 | Playtime used today | Sensor | Minutes played today |
 | Playtime remaining | Sensor | Minutes of play-time left today |
@@ -25,6 +28,14 @@ One Home Assistant device is created per child, with:
 | Last online | Sensor | Timestamp the child was last online |
 
 Data is polled from PSN every 2 minutes (cloud polling).
+
+### Today vs. the recurring limit
+
+The **Add/Remove 15 min today** buttons mirror the app's "Change Playtime for
+Today" screen: today's limit is a *signed adjustment* layered on top of the
+recurring schedule, so it's exposed as add/remove rather than an absolute value.
+The **Daily playtime limit** number sets the recurring per-day limit for every
+day. For larger or scripted adjustments use the `adjust_today_playtime` service.
 
 ### "When limit reached" select
 
@@ -71,6 +82,42 @@ data:
   sunday: 240
   window_start: 480   # 08:00
   window_end: 1320    # 22:00
+```
+
+### `playstation_family.adjust_today_playtime`
+
+Adds or removes play-time **for today only** (a one-day override; does not touch
+the recurring daily limit) — the scriptable form of the +15 / -15 buttons.
+Positive minutes add, negative remove; rounded to 15-minute steps.
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `device_id` / `entity_id` | one of | The child to adjust |
+| `minutes` | yes | Minutes to add (positive) or remove (negative), ±480 max |
+
+```yaml
+service: playstation_family.adjust_today_playtime
+data:
+  device_id: a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6
+  minutes: 30     # give 30 more minutes today (use -30 to take back)
+```
+
+### `playstation_family.set_parental_control`
+
+Writes a single parental-control setting for a child. Values are PSN field codes.
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `device_id` / `entity_id` | one of | The child to update |
+| `field` | yes | One of `internetBrowser`, `vrApp`, `freeCommunication`, `contentControl`, `ageLevel`, `gameContent`, `spendingLimit` |
+| `value` | yes | The PSN code (e.g. `"1"` restrict / `"0"` allow for toggles; a level for `ageLevel`/`gameContent`; an amount for `spendingLimit`) |
+
+```yaml
+service: playstation_family.set_parental_control
+data:
+  device_id: a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6
+  field: internetBrowser
+  value: "1"      # restrict the web browser
 ```
 
 ## Installation via HACS

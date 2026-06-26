@@ -1,26 +1,27 @@
 """Number platform for the PlayStation Family integration.
 
-Two play-time numbers per child:
+Play-time limit numbers per child (all in minutes, 15-minute steps):
 
-* **Daily playtime limit** — the *recurring* per-day limit (PSN's weekly
-  schedule, set uniformly). ``0`` blocks play every day (``P0D``); it is not an
-  "unlimited" sentinel.
 * **Today's playtime limit** — a *one-day* override that absolutely sets today's
   limit (PSN's ``updateTodaysPlaytimeLimit``). ``0`` clears the override, so
-  today reverts to the recurring schedule. Setting any value (e.g. 13, 45) is
-  accepted; PSN quantizes to 15-minute steps.
+  today reverts to the recurring schedule.
+* **Daily playtime limit** — sets the *recurring* limit uniformly on every
+  weekday at once (the per-day playable windows are preserved). ``0`` blocks
+  play every day; it is not an "unlimited" sentinel.
+* **<Weekday> playtime limit** — the recurring limit for one weekday only
+  (Monday…Sunday). Editing one day leaves the other six untouched.
 """
 
 from __future__ import annotations
 
 from homeassistant.components.number import NumberEntity, NumberMode
-from homeassistant.const import UnitOfTime
+from homeassistant.const import EntityCategory, UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from psnfamily import PsnFamilyError
 
-from .const import LOGGER
+from .const import LOGGER, WEEKDAY_NAMES, WEEKDAYS
 from .coordinator import PlaystationFamilyConfigEntry, PlaystationFamilyCoordinator
 from .entity import PlaystationFamilyChildEntity
 
@@ -30,16 +31,17 @@ async def async_setup_entry(
     entry: PlaystationFamilyConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the recurring and today-only play-time limit numbers per child."""
+    """Set up the today, uniform-daily, and per-weekday limit numbers."""
     coordinator = entry.runtime_data
-    async_add_entities(
-        number(coordinator, member)
-        for member in coordinator.children
-        for number in (
-            PlaystationFamilyDailyLimitNumber,
-            PlaystationFamilyTodayLimitNumber,
+    entities: list[NumberEntity] = []
+    for member in coordinator.children:
+        entities.append(PlaystationFamilyTodayLimitNumber(coordinator, member))
+        entities.append(PlaystationFamilyDailyLimitNumber(coordinator, member))
+        entities.extend(
+            PlaystationFamilyWeekdayLimitNumber(coordinator, member, weekday)
+            for weekday in range(7)
         )
-    )
+    async_add_entities(entities)
 
 
 class _PlaytimeLimitNumber(PlaystationFamilyChildEntity, NumberEntity):
@@ -51,46 +53,18 @@ class _PlaytimeLimitNumber(PlaystationFamilyChildEntity, NumberEntity):
     _attr_native_unit_of_measurement = UnitOfTime.MINUTES
     _attr_mode = NumberMode.BOX
 
-
-class PlaystationFamilyDailyLimitNumber(_PlaytimeLimitNumber):
-    """Recurring daily play-time limit (minutes) for a child.
-
-    ``0`` blocks play every day. Quantized to 15 minutes by PSN.
-    """
-
-    _attr_translation_key = "daily_playtime_limit"
-    _attr_icon = "mdi:timer-sand"
-
-    def __init__(self, coordinator: PlaystationFamilyCoordinator, member) -> None:
-        """Initialize the recurring daily limit number."""
-        super().__init__(coordinator, member)
-        self._attr_unique_id = f"{self._account_id}_daily_playtime_limit"
-
-    @property
-    def native_value(self) -> float | None:
-        """Return the recurring per-day limit in minutes (0 = blocked)."""
-        data = self.child_data
-        if data is None:
-            return None
-        seconds = data.playtime.recurring_limit_seconds
-        if seconds is None:
-            return None
-        return seconds / 60
-
-    async def async_set_native_value(self, value: float) -> None:
-        """Set the recurring daily play-time limit (0 = block every day)."""
+    async def _apply(self, coro) -> None:
+        """Await a client write, mapping errors to HA and refreshing after."""
         try:
-            await self.coordinator.client.set_daily_limit(
-                self._member.member_id, int(value) * 60
-            )
+            await coro
         except PsnFamilyError as err:
             LOGGER.error(
-                "Failed to set daily limit for %s: %s",
+                "Failed to set play-time limit for %s: %s",
                 self._member.identity.display_name,
                 err,
             )
             raise HomeAssistantError(
-                f"Failed to set daily play-time limit: {err}"
+                f"Failed to set play-time limit: {err}"
             ) from err
         await self.coordinator.async_request_refresh()
 
@@ -99,7 +73,7 @@ class PlaystationFamilyTodayLimitNumber(_PlaytimeLimitNumber):
     """Today's play-time limit (minutes) for a child — a one-day override.
 
     Absolutely sets today's limit. ``0`` clears the override, so today reverts
-    to the recurring schedule. Quantized to 15 minutes by PSN.
+    to the recurring schedule.
     """
 
     _attr_translation_key = "today_playtime_limit"
@@ -117,23 +91,80 @@ class PlaystationFamilyTodayLimitNumber(_PlaytimeLimitNumber):
         if data is None:
             return None
         seconds = data.playtime.today_limit_seconds
-        if seconds is None:
-            return None
-        return seconds / 60
+        return None if seconds is None else seconds / 60
 
     async def async_set_native_value(self, value: float) -> None:
         """Set today's play-time limit (0 = clear override / revert to schedule)."""
-        try:
-            await self.coordinator.client.set_today_limit(
-                self._member, int(value) * 60
+        await self._apply(
+            self.coordinator.client.set_today_limit(self._member, int(value) * 60)
+        )
+
+
+class PlaystationFamilyDailyLimitNumber(_PlaytimeLimitNumber):
+    """Uniform recurring daily limit (minutes) — applied to every weekday.
+
+    ``0`` blocks play every day. Per-day playable windows are preserved.
+    """
+
+    _attr_translation_key = "daily_playtime_limit"
+    _attr_icon = "mdi:timer-sand"
+
+    def __init__(self, coordinator: PlaystationFamilyCoordinator, member) -> None:
+        """Initialize the uniform daily limit number."""
+        super().__init__(coordinator, member)
+        self._attr_unique_id = f"{self._account_id}_daily_playtime_limit"
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the recurring per-day limit in minutes (0 = blocked).
+
+        When the weekdays differ, returns ``None`` (mixed) so the value isn't
+        misleading; use the per-weekday numbers to see each day.
+        """
+        data = self.child_data
+        if data is None:
+            return None
+        schedule = data.playtime.weekly_schedule
+        durations = {day.duration_seconds for day in schedule}
+        if len(durations) != 1:
+            return None
+        return durations.pop() / 60
+
+    async def async_set_native_value(self, value: float) -> None:
+        """Set the same recurring limit on every weekday (0 = block every day)."""
+        await self._apply(
+            self.coordinator.client.set_all_days_limit(self._member, int(value) * 60)
+        )
+
+
+class PlaystationFamilyWeekdayLimitNumber(_PlaytimeLimitNumber):
+    """Recurring play-time limit (minutes) for a single weekday."""
+
+    _attr_translation_key = "weekday_playtime_limit"
+    _attr_icon = "mdi:calendar-clock"
+    _attr_entity_category = EntityCategory.CONFIG
+
+    def __init__(
+        self, coordinator: PlaystationFamilyCoordinator, member, weekday: int
+    ) -> None:
+        """Initialize the per-weekday limit number (``weekday`` 0=Mon..6=Sun)."""
+        super().__init__(coordinator, member)
+        self._weekday = weekday
+        self._attr_translation_placeholders = {"day": WEEKDAY_NAMES[weekday]}
+        self._attr_unique_id = f"{self._account_id}_limit_{WEEKDAYS[weekday]}"
+
+    @property
+    def native_value(self) -> float | None:
+        """Return this weekday's recurring limit in minutes (0 = blocked)."""
+        data = self.child_data
+        if data is None:
+            return None
+        return data.playtime.weekly_schedule[self._weekday].duration_seconds / 60
+
+    async def async_set_native_value(self, value: float) -> None:
+        """Set this weekday's recurring limit, leaving the other days untouched."""
+        await self._apply(
+            self.coordinator.client.set_schedule_day(
+                self._member, self._weekday, duration_seconds=int(value) * 60
             )
-        except PsnFamilyError as err:
-            LOGGER.error(
-                "Failed to set today's limit for %s: %s",
-                self._member.identity.display_name,
-                err,
-            )
-            raise HomeAssistantError(
-                f"Failed to set today's play-time limit: {err}"
-            ) from err
-        await self.coordinator.async_request_refresh()
+        )

@@ -35,20 +35,23 @@
     }
   },
   "entity": {
-    "button": {
-      "add_today_playtime": {
-        "name": "Add 15 min today"
-      },
-      "remove_today_playtime": {
-        "name": "Remove 15 min today"
-      }
-    },
     "number": {
+      "today_playtime_limit": {
+        "name": "Today's playtime limit"
+      },
       "daily_playtime_limit": {
         "name": "Daily playtime limit"
       },
-      "today_playtime_limit": {
-        "name": "Today's playtime limit"
+      "weekday_playtime_limit": {
+        "name": "{day} playtime limit"
+      }
+    },
+    "time": {
+      "weekday_window_start": {
+        "name": "{day} playable from"
+      },
+      "weekday_window_end": {
+        "name": "{day} playable until"
       }
     },
     "select": {

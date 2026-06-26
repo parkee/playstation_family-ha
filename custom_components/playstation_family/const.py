@@ -29,10 +29,6 @@ SERVICE_ADJUST_TODAY_PLAYTIME: Final = "adjust_today_playtime"
 # the current values, so this is an action rather than a stateful entity.
 SERVICE_SET_PARENTAL_CONTROL: Final = "set_parental_control"
 
-# Step used by the today-only +/- buttons and the default service step, matching
-# the app's 15-minute increments (the API quantizes to 15 min regardless).
-TODAY_STEP_MINUTES: Final = 15
-
 ATTR_MINUTES: Final = "minutes"
 ATTR_FIELD: Final = "field"
 ATTR_VALUE: Final = "value"
@@ -52,9 +48,9 @@ PARENTAL_CONTROL_FIELDS: Final[tuple[str, ...]] = (
     "dvdContent",
 )
 
-# Mon..Sun keys for the weekly-schedule service. Index 0 == Monday matches the
-# order PSN's ohanaUpdatePlaytimeSchedule applies the 7-entry list (see the
-# service handler for the documented assumption).
+# Mon..Sun keys for the weekly schedule. Index 0 == Monday matches the order
+# PSN's ohanaUpdatePlaytimeSchedule applies the 7-entry list (confirmed live by
+# writing 7 distinct durations and reading back which weekday each landed on).
 WEEKDAYS: Final[tuple[str, ...]] = (
     "monday",
     "tuesday",
@@ -63,6 +59,17 @@ WEEKDAYS: Final[tuple[str, ...]] = (
     "friday",
     "saturday",
     "sunday",
+)
+
+# Display names for the per-weekday schedule entities (translation placeholder).
+WEEKDAY_NAMES: Final[tuple[str, ...]] = (
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
 )
 
 ATTR_DEVICE_ID: Final = "device_id"
@@ -78,8 +85,8 @@ DEFAULT_WINDOW_END: Final = 1440
 UPDATE_INTERVAL: Final = timedelta(seconds=120)
 
 PLATFORMS: Final[list[Platform]] = [
-    Platform.BUTTON,
     Platform.NUMBER,
     Platform.SELECT,
     Platform.SENSOR,
+    Platform.TIME,
 ]

@@ -17,10 +17,10 @@ One Home Assistant device is created per child, with:
 
 | Entity | Platform | Description |
 |--------|----------|-------------|
-| Daily playtime limit | Number | The **recurring** per-day limit (0 = blocked, 15-minute steps) |
-| Today's playtime limit | Number | **Today only** — absolutely set today's limit (0 = clear the override / revert to the schedule) |
-| Add 15 min today | Button | Grant 15 more minutes **for today only** (one-day override) |
-| Remove 15 min today | Button | Take back 15 minutes **for today only** (never goes below 0) |
+| Today's playtime limit | Number | **Today only** — set today's limit to any value (0 = clear the override / revert to the schedule) |
+| Daily playtime limit | Number | Set the **recurring** limit on *every* weekday at once (0 = blocked, 15-minute steps) |
+| `<Weekday>` playtime limit | Number ×7 | The recurring limit for one weekday (Monday…Sunday); editing one leaves the others untouched |
+| `<Weekday>` playable from / until | Time ×14 | The playable-hours window (allowed hours / "bedtime") per weekday |
 | When limit reached | Select | Action when the limit is hit: **Notify only** or **Log out** |
 | Playtime used today | Sensor | Minutes played today |
 | Playtime remaining | Sensor | Minutes of play-time left today |
@@ -28,25 +28,26 @@ One Home Assistant device is created per child, with:
 | Now playing | Sensor | Title currently being played, or "Not playing" |
 | Last online | Sensor | Timestamp the child was last online |
 
-Data is polled from PSN every 2 minutes (cloud polling).
+The per-weekday limit and window entities are grouped under the device's
+**Configuration** section. Data is polled from PSN every 2 minutes (cloud polling).
 
-### Today vs. the recurring limit
+### Today vs. the recurring schedule
 
 PSN has two distinct play-time controls, and so does this integration:
 
-- **Daily playtime limit** (number) — the *recurring* per-day limit (PSN's
-  weekly schedule, set uniformly across all days). `0` blocks play every day;
-  it is **not** an "unlimited" value (a child with no allowance is blocked by
-  default until you grant time).
-- **Today's playtime limit** (number) — a *one-day override* that **absolutely
-  sets** today's limit (e.g. set it to `60` for 60 minutes today). Setting it to
-  `0` clears the override, so today reverts to the recurring schedule.
+- **Today's playtime limit** (number) — a *one-day override* that sets today's
+  limit to any value (e.g. `60` for 60 minutes today). Setting it to `0` clears
+  the override, so today reverts to the recurring schedule.
+- **The recurring weekly schedule** — mirrors the app's advanced schedule:
+  - **Daily playtime limit** sets the same limit on every weekday at once.
+  - The seven **`<Weekday>` playtime limit** numbers set each day individually.
+  - The fourteen **`<Weekday>` playable from / until** times set each day's
+    playable-hours window (full day = `00:00`–`23:59`, where `23:59` means
+    end-of-day). `0` minutes on a day blocks play entirely that day.
 
-The **Add/Remove 15 min today** buttons mirror the app's "Change Playtime for
-Today" screen. Because PSN's update is an absolute set, the integration reads
-today's current limit and writes back `current ± 15 min`; removing past `0`
-clears the override (it never goes negative). For larger or scripted relative
-adjustments use the `adjust_today_playtime` service.
+`0` is **blocked**, never "unlimited" — a child has no play-time until you grant
+it. Editing any single weekday entity preserves the rest of the schedule. For a
+scripted one-day relative nudge, use the `adjust_today_playtime` service.
 
 ### "When limit reached" select
 

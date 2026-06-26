@@ -46,6 +46,9 @@
     "number": {
       "daily_playtime_limit": {
         "name": "Daily playtime limit"
+      },
+      "today_playtime_limit": {
+        "name": "Today's playtime limit"
       }
     },
     "select": {

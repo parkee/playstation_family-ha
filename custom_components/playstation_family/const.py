@@ -17,10 +17,11 @@ CONF_TOKENS: Final = "tokens"
 # Service for setting a per-weekday play-time schedule.
 SERVICE_SET_WEEKLY_SCHEDULE: Final = "set_weekly_schedule"
 
-# Service for a one-off, today-only play-time adjustment (signed delta). Unlike
-# the recurring "Daily playtime limit" number, today's limit is a *delta*
-# operation (PSN's updateTodaysPlaytimeLimit), so it is exposed as add/remove
-# rather than an absolute set -- mirroring the app's "+15 / -15 min" buttons.
+# Service for a one-off, today-only play-time adjustment (signed minutes). PSN's
+# updateTodaysPlaytimeLimit absolutely sets today's one-day override, so the
+# library reads the current value and writes back current +/- the amount --
+# mirroring the app's "+15 / -15 min" buttons. The recurring "Daily playtime
+# limit" number is a separate, absolute control.
 SERVICE_ADJUST_TODAY_PLAYTIME: Final = "adjust_today_playtime"
 
 # Service for writing a single parental-control field (web browsing, comms, VR,

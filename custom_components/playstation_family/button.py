@@ -1,10 +1,12 @@
 """Button platform for the PlayStation Family integration.
 
-Exposes today-only play-time adjustments. PSN's ``updateTodaysPlaytimeLimit`` is
-a signed *delta* applied to today's effective limit (a one-day override), so it
-maps to add/remove actions rather than an absolute set -- mirroring the PS Family
-app's "+15 / -15 min" buttons on the "Change Playtime for Today" screen. The
-recurring per-day limit is the separate "Daily playtime limit" number entity.
+Exposes today-only play-time adjustments. PSN's ``updateTodaysPlaytimeLimit``
+*absolutely sets* today's one-day override, so the library's ``add_time`` /
+``remove_time`` helpers read today's current limit and write back
+``current ± 15 min`` -- mirroring the PS Family app's "+15 / -15 min" buttons on
+the "Change Playtime for Today" screen. Removing past 0 clears the override, so
+today reverts to the recurring schedule (it never goes negative). The recurring
+per-day limit is the separate "Daily playtime limit" number entity.
 """
 
 from __future__ import annotations
@@ -17,7 +19,7 @@ from homeassistant.components.button import ButtonEntity, ButtonEntityDescriptio
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from psnfamily import OhanaClient, PsnFamilyError
+from psnfamily import FamilyMember, OhanaClient, PsnFamilyError
 
 from .const import LOGGER, TODAY_STEP_MINUTES
 from .coordinator import PlaystationFamilyConfigEntry, PlaystationFamilyCoordinator
@@ -30,7 +32,7 @@ _STEP_SECONDS = TODAY_STEP_MINUTES * 60
 class PlaystationFamilyButtonDescription(ButtonEntityDescription):
     """Describe a PS Family child button and the client call it performs."""
 
-    press_fn: Callable[[OhanaClient, str], Coroutine[Any, Any, bool]]
+    press_fn: Callable[[OhanaClient, FamilyMember], Coroutine[Any, Any, bool]]
 
 
 BUTTON_DESCRIPTIONS: tuple[PlaystationFamilyButtonDescription, ...] = (
@@ -38,15 +40,13 @@ BUTTON_DESCRIPTIONS: tuple[PlaystationFamilyButtonDescription, ...] = (
         key="add_today_playtime",
         translation_key="add_today_playtime",
         icon="mdi:timer-plus",
-        press_fn=lambda client, member_id: client.add_time(member_id, _STEP_SECONDS),
+        press_fn=lambda client, member: client.add_time(member, _STEP_SECONDS),
     ),
     PlaystationFamilyButtonDescription(
         key="remove_today_playtime",
         translation_key="remove_today_playtime",
         icon="mdi:timer-minus",
-        press_fn=lambda client, member_id: client.remove_time(
-            member_id, _STEP_SECONDS
-        ),
+        press_fn=lambda client, member: client.remove_time(member, _STEP_SECONDS),
     ),
 )
 
@@ -85,7 +85,7 @@ class PlaystationFamilyButton(PlaystationFamilyChildEntity, ButtonEntity):
         """Apply the today-only adjustment and refresh."""
         try:
             await self.entity_description.press_fn(
-                self.coordinator.client, self._member.member_id
+                self.coordinator.client, self._member
             )
         except PsnFamilyError as err:
             LOGGER.error(

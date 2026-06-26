@@ -17,9 +17,10 @@ One Home Assistant device is created per child, with:
 
 | Entity | Platform | Description |
 |--------|----------|-------------|
-| Daily playtime limit | Number | Set/clear the **recurring** daily play-time limit (0 = unlimited, 15-minute steps) |
+| Daily playtime limit | Number | The **recurring** per-day limit (0 = blocked, 15-minute steps) |
+| Today's playtime limit | Number | **Today only** — absolutely set today's limit (0 = clear the override / revert to the schedule) |
 | Add 15 min today | Button | Grant 15 more minutes **for today only** (one-day override) |
-| Remove 15 min today | Button | Take back 15 minutes **for today only** |
+| Remove 15 min today | Button | Take back 15 minutes **for today only** (never goes below 0) |
 | When limit reached | Select | Action when the limit is hit: **Notify only** or **Log out** |
 | Playtime used today | Sensor | Minutes played today |
 | Playtime remaining | Sensor | Minutes of play-time left today |
@@ -31,11 +32,21 @@ Data is polled from PSN every 2 minutes (cloud polling).
 
 ### Today vs. the recurring limit
 
+PSN has two distinct play-time controls, and so does this integration:
+
+- **Daily playtime limit** (number) — the *recurring* per-day limit (PSN's
+  weekly schedule, set uniformly across all days). `0` blocks play every day;
+  it is **not** an "unlimited" value (a child with no allowance is blocked by
+  default until you grant time).
+- **Today's playtime limit** (number) — a *one-day override* that **absolutely
+  sets** today's limit (e.g. set it to `60` for 60 minutes today). Setting it to
+  `0` clears the override, so today reverts to the recurring schedule.
+
 The **Add/Remove 15 min today** buttons mirror the app's "Change Playtime for
-Today" screen: today's limit is a *signed adjustment* layered on top of the
-recurring schedule, so it's exposed as add/remove rather than an absolute value.
-The **Daily playtime limit** number sets the recurring per-day limit for every
-day. For larger or scripted adjustments use the `adjust_today_playtime` service.
+Today" screen. Because PSN's update is an absolute set, the integration reads
+today's current limit and writes back `current ± 15 min`; removing past `0`
+clears the override (it never goes negative). For larger or scripted relative
+adjustments use the `adjust_today_playtime` service.
 
 ### "When limit reached" select
 

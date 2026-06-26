@@ -121,11 +121,14 @@ def async_setup_services(hass: HomeAssistant) -> None:
         await coordinator.async_request_refresh()
 
     async def _handle_adjust_today_playtime(call: ServiceCall) -> None:
-        """Apply a today-only signed play-time delta to the target child.
+        """Add or remove play-time for today only on the target child.
 
-        PSN's updateTodaysPlaytimeLimit is a delta (one-day override), so this
-        adds (positive) or removes (negative) minutes from today's effective
-        limit -- it does not change the recurring "Daily playtime limit".
+        PSN's updateTodaysPlaytimeLimit *absolutely sets* today's one-day
+        override, so the library's add_time / remove_time read today's current
+        limit and write back current ± the requested amount. Positive minutes
+        add, negative remove; removing past 0 clears the override (today reverts
+        to the recurring schedule). The recurring "Daily playtime limit" is not
+        touched.
         """
         coordinator, member = _resolve_target(hass, call)
         minutes = call.data[ATTR_MINUTES]
@@ -134,11 +137,11 @@ def async_setup_services(hass: HomeAssistant) -> None:
             raise ServiceValidationError(
                 "minutes rounds to 0; use a multiple of 15 minutes"
             )
-        change = format_pt(seconds if minutes > 0 else -seconds)
         try:
-            await coordinator.client.update_todays_playtime(
-                member.member_id, change
-            )
+            if minutes > 0:
+                await coordinator.client.add_time(member, seconds)
+            else:
+                await coordinator.client.remove_time(member, seconds)
         except PsnFamilyError as err:
             LOGGER.error(
                 "Failed today's play-time adjustment for %s: %s",
